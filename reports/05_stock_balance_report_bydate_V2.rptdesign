@@ -13,7 +13,7 @@ divested of its trade secrets, irrespective of what has been&#13;
 deposited with the U.S. Copyright Office.&#13;
 &#13;
 09-19764@000</property>
-    <property name="createdBy">Eclipse BIRT Designer Version 4.3.1.v201309091055 Build &lt;4.3.1.v20130917-1035></property>
+    <property name="createdBy">Eclipse BIRT Designer Version 4.3.1.v201309091055 Build &lt;4.3.1.v20130918-1142></property>
     <html-property name="description">This template will create a report having a single header with multiple rows of data.</html-property>
     <property name="units">in</property>
     <method name="initialize"><![CDATA[importPackage(Packages.com.ibm.tivoli.maximo.report.script);
@@ -741,23 +741,23 @@ if(params["storeloc"].value &amp;&amp; params["storeloc"].toUpperCase() != "TRAN
 // Add query to sqlText variable.
 sqlText = "select distinct inventory.itemnum as itemcode, inventory.issueunit as unit"
 + " , nvl(item.description,' ') as itemdescription "
-+ " , (select nvl(sum(m1.quantity/m1.conversion),0) from matrectrans m1 where m1.itemnum = matrectrans.itemnum and m1.invuseid = matrectrans.invuseid AND m1.shipmentlinenum =  matrectrans.shipmentlinenum and m1.issuetype ='SHIPRECEIPT' " 
-+ " and trunc(m1.actualdate) <= '"+ params["reportdate"].value +"') quantityReceipt "
++ " , (select nvl(sum(m1.quantity / nullif(m1.conversion, 0)),0) from matrectrans m1 where m1.itemnum = matrectrans.itemnum and m1.invuseid = matrectrans.invuseid AND m1.shipmentlinenum =  matrectrans.shipmentlinenum and m1.issuetype ='SHIPRECEIPT' " 
++ " and trunc(m1.actualdate) <= to_date('"+ params["reportdate"].value +"', 'dd/mon/yyyy hh24:mi')) as quantityReceipt "
 + " , rowtocol('select binnum from invbalances where itemnum=''' || matrectrans.itemnum || ''' and curbal > 0') as binnum"
 + " , nvl(inventory.modelnum,'N/A') as partno, nvl(inventory.serialno,'N/A') as serialno,"
-+ " matrectrans.quantity/conversion quantityTransfer, matrectrans.unitcost, matrectrans.loadedcost loadedcost, matrectrans.linecost linecostTransfer , "
-+" item.criticality as itscriticality, item.commoditygroup as itscommoditygroup, item.commodity as itscommodity ,shipmentlinenum "
++ " matrectrans.quantity / nullif(matrectrans.conversion, 0) as quantityTransfer, matrectrans.unitcost, matrectrans.loadedcost as loadedcost, matrectrans.linecost as linecostTransfer, "
++ " item.criticality as itscriticality, item.commoditygroup as itscommoditygroup, item.commodity as itscommodity, matrectrans.shipmentlinenum "
 + " from inventory "
-+ " left join matrectrans on inventory.itemnum = matrectrans.itemnum and inventory.location = matrectrans.fromstoreloc"
++ " join matrectrans on inventory.itemnum = matrectrans.itemnum and inventory.location = matrectrans.fromstoreloc AND matrectrans.matrectransid NOT IN (198352, 198354)"
 + " join item on matrectrans.itemnum = item.itemnum and item.itemtype = 'ITEM' "
 + " left join alndomain cm on cm.value = item.commgroup and cm.domainid = 'COMMGROUP'"
-+ " left join invuse on invuse.invuseid = matrectrans.invuseid "
++ " join invuse on invuse.invuseid = matrectrans.invuseid "
 // Include the Maximo where clause
 + " where " + params["where"]
 + " and matrectrans.issuetype = 'SHIPTRANSFER' "
 + " and invuse.receipts in ('PARTIAL','NONE','COMPLETE') "
-+ " and trunc(matrectrans.actualdate) <= '"+ params["reportdate"].value +"' "
-+ " and BD1_TRANSFER_NOT_RECEIPT (matrectrans.itemnum,to_date('"+ params["reportdate"].value +"','dd/mon/yyyy hh24:mi'), inventory.location,matrectrans.invuseid) = 1 "
++ " and trunc(matrectrans.actualdate) <= to_date('"+ params["reportdate"].value +"', 'dd/mon/yyyy hh24:mi') "
++ " and BD1_TRANSFER_NOT_RECEIPT (matrectrans.itemnum, to_date('"+ params["reportdate"].value +"','dd/mon/yyyy hh24:mi'), inventory.location, matrectrans.invuseid) = 1 "
 + " order by itemcode ";
 
 reportContext.setPersistentGlobalVariable("sql", sqlText);
