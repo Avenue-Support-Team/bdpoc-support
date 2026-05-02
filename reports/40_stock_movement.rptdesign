@@ -722,29 +722,6 @@ if(params["commoditygroup"].value) {
 }
 
 // Add query to sqlText variable.
-//  sqlText = "select distinct inventory.itemnum as itemcode, inventory.issueunit as unit"
-// + " , nvl(item.description,' ') as itemdescription "
-// + " , matrectrans.unitcost "
-// + " , (select nvl(sum(m1.quantity/m1.conversion),0) from matrectrans m1 where m1.itemnum = matrectrans.itemnum and matrectransid not in ('81945','81947') and m1.invuseid = matrectrans.invuseid AND m1.shipmentlinenum =  matrectrans.shipmentlinenum  and m1.issuetype ='SHIPRECEIPT' " 
-// + " and trunc(m1.actualdate) <= '"+ params["endDate"].value +"') quantityReceipt "
-// + " , (select nvl(sum(m1.quantity/m1.conversion),0) from matrectrans m1 where m1.itemnum = matrectrans.itemnum and m1.invuseid = matrectrans.invuseid AND m1.shipmentlinenum =  matrectrans.shipmentlinenum  and m1.issuetype ='SHIPCANCEL' " 
-// + " and trunc(m1.actualdate) <= '"+ params["endDate"].value +"') quantityCancel "
-// + " , matrectrans.loadedcost loadedcost, matrectrans.quantity quantityTransfer ,shipmentlinenum"
-// + " from inventory "
-// + " left join matrectrans on inventory.itemnum = matrectrans.itemnum and inventory.location = matrectrans.fromstoreloc"
-// + " join item on matrectrans.itemnum = item.itemnum and item.itemtype = 'ITEM' "
-// + " left join alndomain cm on cm.value = item.commgroup and cm.domainid = 'COMMGROUP'"
-// + " left join invuse on invuse.invuseid = matrectrans.invuseid "
-// // Include the Maximo where clause
-// + "      WHERE " + params["where"]
-// + " 		and matrectrans.issuetype in ('SHIPTRANSFER') "
-// + " 		and invuse.receipts in ('PARTIAL','NONE','COMPLETE') "
-// + " 		and trunc(matrectrans.actualdate) <= '"+ params["endDate"].value +"' "
-// + " 		and BD1_TRANSFER_NOT_RECEIPT (matrectrans.itemnum, to_date('"+ params["endDate"].value +"','dd/mon/yyyy hh24:mi'), inventory.location,matrectrans.invuseid) = 1 "
-// //+ " 		and BD1_TRANSFER_IN_MONTH(matrectrans.itemnum, to_date('"+ params["startDate"].value +"','dd/mon/yyyy'), to_date('"+ params["endDate"].value +" 23:59','dd/mon/yyyy hh24:mi'),inventory.location) <> 0 "
-// + "			and (quantityTransfer - quantityReceipt - quantityCancel) > 0 "
-// + " order by itemcode ";
-
 sqlText = "select distinct inventory.itemnum as itemcode, inventory.issueunit as unit"
 + " , nvl(item.description,' ') as itemdescription "
 + " , matrectrans.unitcost "
