@@ -1,0 +1,135 @@
+from psdi.mbo import MboConstants
+
+if OrderQty is not None and OrderQty != 0 and UnitPrice is not None and TaxAnalysisCode is not None:
+
+    taxRateLine = mbo.getMboSet("TAXRATE").getMbo(0)
+    VATRate = taxRateLine.getDouble("VATRATE")
+    CITRate = taxRateLine.getDouble("CITRATE")
+
+    if unitpricenet is not None:
+        UnitPrice = unitpricenet * ((100 + VATRate) / 100)    
+
+    TotalAmount = OrderQty * UnitPrice
+   
+#    print 'TAX type = %s' % (TaxAnalysisCode[0:1]) 
+    
+    if TaxAnalysisCode[0:1] == 'N':
+		if len(TaxAnalysisCode) == 7:
+			CITTurnOver = TotalAmount / (1 - (CITRate/100))
+			CITPayable = round((CITTurnOver * CITRate) / 100,2)
+
+			VATTurnOver = CITTurnOver / (1 - (VATRate/100))
+			VATPayable = round((VATTurnOver * VATRate) / 100,2)
+
+			VendorPayable = TotalAmount
+			NetLineCost = VendorPayable
+			
+			InvUnitCost = UnitPrice + (CITPayable / OrderQty)
+			
+		elif len(TaxAnalysisCode) == 5:
+			CITTurnOver = TotalAmount / (1 - (CITRate/100))
+			CITPayable = round((CITTurnOver * CITRate) / 100,2)
+
+			VATTurnOver = CITTurnOver / (1 - (VATRate/100))
+			VATPayable = round((VATTurnOver * VATRate) / 100,2)
+
+			VendorPayable = TotalAmount
+			NetLineCost = VendorPayable
+			
+			InvUnitCost = UnitPrice + (CITPayable / OrderQty)
+			
+
+    elif  TaxAnalysisCode[0:1] == 'G':
+        VATTurnOver = TotalAmount
+        VATPayable = round((VATTurnOver * VATRate) / 100,2)        
+
+        CITTurnOver = TotalAmount - VATPayable 
+        CITPayable = round((CITTurnOver * CITRate)/ 100,2)
+
+	
+        VendorPayable = TotalAmount - (CITPayable + VATPayable)
+        NetLineCost = VendorPayable
+		
+        InvUnitCost = UnitPrice - (VATPayable / OrderQty)
+
+    elif TaxAnalysisCode[0:1] == "S":
+		if len(TaxAnalysisCode) == 7:
+			CITTurnOver = TotalAmount
+			CITPayable = round((CITTurnOver * CITRate) / 100,2)
+		
+			VATTurnOver = CITTurnOver / (1 - (VATRate/100))
+			VATPayable = round((VATTurnOver * VATRate) / 100,2)
+
+			VendorPayable = TotalAmount - CITPayable
+			NetLineCost = VendorPayable
+			
+			InvUnitCost = UnitPrice
+			
+		elif len(TaxAnalysisCode) == 5:
+			CITTurnOver = TotalAmount
+			CITPayable = round((CITTurnOver * CITRate) / 100,2)
+		
+			VATTurnOver = CITTurnOver / (1 - (VATRate/100))
+			VATPayable = round((VATTurnOver * VATRate) / 100,2)
+
+			VendorPayable = TotalAmount - CITPayable
+			NetLineCost = VendorPayable
+			
+			InvUnitCost = UnitPrice
+    else:
+        VATPayable = (TotalAmount * VATRate) / (100 + VATRate)
+        CITPayable = 0
+
+        VendorPayable = TotalAmount   
+        NetLineCost = VendorPayable - VATPayable
+
+        InvUnitCost = UnitPrice / (1 + (VATRate/100))
+
+    if mbo.getOwner().getName() == 'INVOICE':
+        #Update Invoice's header total values (VAT, CIT, Vendor Payable)
+        InvLineCnt = mbo.getOwner().getMboSet("INVOICELINE").count()
+
+        TotalVATPayable = 0
+        TotalCITPayable = 0
+        TotalVendorPayable = 0
+        TotalInvoicedAmount= 0
+
+        if InvLineCnt > 0:
+            for i in range(InvLineCnt ):
+                if mbo.getOwner().getMboSet("INVOICELINE").getMbo(i).getDouble("INVOICELINENUM") != mbo.getDouble("INVOICELINENUM"):
+                    TotalVATPayable += mbo.getOwner().getMboSet("INVOICELINE").getMbo(i).getDouble("INVOICELIN3")
+                    TotalCITPayable += mbo.getOwner().getMboSet("INVOICELINE").getMbo(i).getDouble("INVOICELIN6")
+                    TotalVendorPayable += mbo.getOwner().getMboSet("INVOICELINE").getMbo(i).getDouble("INVOICELIN7")
+                    TotalInvoicedAmount+= mbo.getOwner().getMboSet("INVOICELINE").getMbo(i).getDouble("INVOICELIN8")
+                else:
+                    TotalVATPayable += VATPayable
+                    TotalCITPayable += CITPayable
+                    TotalVendorPayable += VendorPayable
+                    TotalInvoicedAmount+= TotalAmount
+
+        mbo.getOwner().setValue("TotalVAT", TotalVATPayable, MboConstants.NOACCESSCHECK)
+        mbo.getOwner().setValue("TotalCIT", TotalCITPayable,  MboConstants.NOACCESSCHECK)
+        mbo.getOwner().setValue("TotalVendorPayable", TotalVendorPayable,  MboConstants.NOACCESSCHECK)
+        mbo.getOwner().setValue("TotalInvoicedAmount", TotalInvoicedAmount,  MboConstants.NOACCESSCHECK)
+
+        #Update Invoice Cost - Net Line Cost
+        InvCostCnt = mbo.getMboSet("INVOICECOST").count()
+
+        if InvCostCnt > 0:
+            for j in range(InvCostCnt ):
+                mbo.getMboSet("INVOICECOST").getMbo(j).setValue("INVOICELINENETCOST", NetLineCost, MboConstants.NOACCESSCHECK)
+
+    if mbo.getOwner().getName() == 'PO':
+        #Update PO's header total value
+        POLineCnt = mbo.getOwner().getMboSet("POLINE").count()
+
+        TotalPOValue= 0
+
+        if POLineCnt > 0:
+            for i in range(POLineCnt ):
+                if mbo.getOwner().getMboSet("POLINE").getMbo(i).getDouble("POLINENUM") != mbo.getDouble("POLINENUM"):
+                    TotalPOValue+= mbo.getOwner().getMboSet("POLINE").getMbo(i).getDouble("PLIN8")
+                else:
+                    TotalPOValue+= TotalAmount
+
+        mbo.getOwner().setValue("TotalPOValue", TotalPOValue,  MboConstants.NOACCESSCHECK)
